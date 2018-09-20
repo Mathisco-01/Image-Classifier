@@ -7,24 +7,23 @@ import random
 from tqdm import tqdm
 import pickle
 import tensorflow as tf 
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Flatten
-
+import h5py
 
 DATADIR = "Z:/ML_DATASETS/walk-or-run/walk_or_run_train/train"
 CATEGORIES = ["walk","run"]
 IMG_SIZE = 50
 training_data = []
-X = []
-y = []
+
 def create_training_data():
 	training_data = []
 
 	print("Creating training_data and resizing:")
 	for category in CATEGORIES:
-
+		X,y = [],[]
 		path = os.path.join(DATADIR, category)
-		class_num = CATEGORIES.index(category)
+		classnum = CATEGORIES.index(category)
 		
 		for img in tqdm(os.listdir(path)):
 			try:	
@@ -32,7 +31,7 @@ def create_training_data():
 				new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
 				#plt.imshow(new_array, cmap="gray")
 				#plt.show()
-				training_data.append([new_array, class_num])
+				training_data.append([new_array, classnum])
 				
 			except Exception as e:
 				pass
@@ -45,6 +44,7 @@ def create_training_data():
 		y.append(label)
 
 	X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
+	X = X/255
 	if True:
 		pickleSave(X,y)
 	return X,y
@@ -77,30 +77,40 @@ def pickleLoad():
 		exit()
 	return X,y
 
-if False:
-	X,y= create_training_data()
-else:
+try:
+	if(sys.argv[1]=='c'):  #add c to cmd command to "Create" dataset
+		X,y= create_training_data()
+	else:
+		X,y= pickleLoad()
+except:
 	X,y= pickleLoad()
 
-X = X/255
 
-model = Sequential()
-model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2,2)))
+def train():
 
-model.add(Conv2D(64, (3,3)))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2,2)))
+	model = Sequential()
+	model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
+	model.add(Activation("relu"))
+	model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Flatten())
-model.add(Dense(64))
+	model.add(Conv2D(64, (3,3)))
+	model.add(Activation("relu"))
+	model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Dense(1))
-model.add(Activation("sigmoid"))
+	model.add(Flatten())
+	model.add(Dense(64))
 
-model.compile(loss="binary_crossentropy",
-				optimizer="adam",
-				metrics=['accuracy'])
+	model.add(Dense(1))
+	model.add(Activation("sigmoid"))
 
-model.fit(X, y, batch_size=12,epochs=15, validation_split=0.1)
+	model.compile(loss="binary_crossentropy",
+					optimizer="adam",
+					metrics=['accuracy'])
+
+	model.fit(X, y, batch_size=12,epochs=15, validation_split=0.1)
+
+	if True:
+		model.save('walkorrunmodel.h5')
+
+
+train()
