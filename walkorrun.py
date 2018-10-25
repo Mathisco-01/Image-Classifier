@@ -1,6 +1,12 @@
+#Belgium 2018
+#Author: Mathis Van Eetvelde
+
+
+#Imports
 import numpy as np 
 import matplotlib.pyplot as plt
 import os
+import time
 import sys
 import cv2
 import random
@@ -15,6 +21,17 @@ DATADIR = "Z:/ML_DATASETS/walk-or-run/walk_or_run_train/train"
 CATEGORIES = ["walk","run"]
 IMG_SIZE = 50
 training_data = []
+
+def msg(num):
+	if(num == 1):
+		print("{}- Creating dataset!".format(time.asctime())) 
+	elif(num == 2):
+		print("{}- Loading dataset!".format(time.asctime()))
+	elif(num == 3):
+		print("{}- Starting training!".format(time.asctime()))
+	elif(num == 4):
+		print("{}- Finished training!".format(time.asctime()))		
+	return 0 
 
 def create_training_data():
 	training_data = []
@@ -77,40 +94,49 @@ def pickleLoad():
 		exit()
 	return X,y
 
-try:
-	if(sys.argv[1]=='c'):  #add c to cmd command to "Create" dataset
-		X,y= create_training_data()
-	else:
+def initModel():
+	try:
+		if(sys.argv[1]=='c'):  #add c to cmd command to "Create" dataset
+			msg(1)
+			X,y= create_training_data()
+		else:
+			msg(2)
+			X,y= pickleLoad()
+	except:
+		msg(2)
 		X,y= pickleLoad()
-except:
-	X,y= pickleLoad()
+
+	return X,y
 
 
 def train():
+	msg(3)
+	try:
+		model = Sequential()
+		model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
+		model.add(Activation("relu"))
+		model.add(MaxPooling2D(pool_size=(2,2)))
 
-	model = Sequential()
-	model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
-	model.add(Activation("relu"))
-	model.add(MaxPooling2D(pool_size=(2,2)))
+		model.add(Conv2D(64, (3,3)))
+		model.add(Activation("relu"))
+		model.add(MaxPooling2D(pool_size=(2,2)))
 
-	model.add(Conv2D(64, (3,3)))
-	model.add(Activation("relu"))
-	model.add(MaxPooling2D(pool_size=(2,2)))
+		model.add(Flatten())
+		model.add(Dense(64))
 
-	model.add(Flatten())
-	model.add(Dense(64))
+		model.add(Dense(1))
+		model.add(Activation("sigmoid"))
 
-	model.add(Dense(1))
-	model.add(Activation("sigmoid"))
+		model.compile(loss="binary_crossentropy",
+						optimizer="adam",
+						metrics=['accuracy'])
 
-	model.compile(loss="binary_crossentropy",
-					optimizer="adam",
-					metrics=['accuracy'])
-
-	model.fit(X, y, batch_size=12,epochs=15, validation_split=0.1)
-
+		model.fit(X, y, batch_size=120,epochs=200, validation_split=0.1)
+	except Exception as e:
+		print(e)
 	if True:
 		model.save('walkorrunmodel.h5')
+	msg(4)
 
-
+X, y = initModel()
 train()
