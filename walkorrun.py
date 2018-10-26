@@ -1,6 +1,4 @@
-#Belgium 2018
-#Author: Mathis Van Eetvelde
-
+s#Author: Mathis Van Eetvelde
 
 #Imports
 import numpy as np 
@@ -17,9 +15,8 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Flatten
 import h5py
 
-DATADIR = "Z:/ML_DATASETS/walk-or-run/walk_or_run_train/train"
-CATEGORIES = ["walk","run"]
-IMG_SIZE = 50
+DATADIR = "Z:/ML_DATASETS/walk-or-run/walk_or_run_train/train" #Dataset dir
+IMG_SIZE = 50 #With and Height (will convert to a square picture)
 training_data = []
 
 def msg(num):
@@ -46,14 +43,12 @@ def create_training_data():
 			try:	
 				img_array = cv2.imread(os.path.join(path, img), cv2.IMREAD_GRAYSCALE)
 				new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
-				#plt.imshow(new_array, cmap="gray")
-				#plt.show()
 				training_data.append([new_array, classnum])
 				
 			except Exception as e:
 				pass
 	
-	random.shuffle(training_data)
+	random.shuffle(training_data) #Shuffling data
 	print("Sorting data:")
 
 	for features, label in tqdm(training_data):
@@ -61,7 +56,7 @@ def create_training_data():
 		y.append(label)
 
 	X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
-	X = X/255
+	X = X/255 #ReLu for color channels
 	if True:
 		pickleSave(X,y)
 	return X,y
