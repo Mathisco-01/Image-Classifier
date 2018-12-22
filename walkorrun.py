@@ -1,4 +1,4 @@
-s#Author: Mathis Van Eetvelde
+#Author: Mathis Van Eetvelde
 
 #Imports
 import numpy as np 
@@ -19,6 +19,11 @@ DATADIR = "Z:/ML_DATASETS/walk-or-run/walk_or_run_train/train" #Dataset dir
 IMG_SIZE = 50 #With and Height (will convert to a square picture)
 training_data = []
 
+try:
+	epochs = int(sys.argv[3])
+except:
+	epochs = 300
+
 def msg(num):
 	if(num == 1):
 		print("{}- Creating dataset!".format(time.asctime())) 
@@ -27,12 +32,14 @@ def msg(num):
 	elif(num == 3):
 		print("{}- Starting training!".format(time.asctime()))
 	elif(num == 4):
-		print("{}- Finished training!".format(time.asctime()))		
+		print("{}- Finished training!".format(time.asctime()))	
+	elif(num == 5):
+		print("{}- Loading trained model!".format(time.asctime()))	
+
 	return 0 
 
 def create_training_data():
-	training_data = []
-
+	CATEGORIES = os.listdir(DATADIR)
 	print("Creating training_data and resizing:")
 	for category in CATEGORIES:
 		X,y = [],[]
@@ -77,7 +84,7 @@ def pickleSave(X,y):
 	except Exception as e:
 		print(e)
 
-def pickleLoad():
+def pickleLoadDataset():
 	print("Loading XY Dataset")
 	try:
 		X = pickle.load(open("X.pickle","rb"))
@@ -89,49 +96,81 @@ def pickleLoad():
 		exit()
 	return X,y
 
-def initModel():
+def pickleLoadModel(model):
+	print("Loading trained model")
+	try:
+		trainedModel = model.load_weights("walkorrunmodel.h5")
+	except Exception as e:
+		print(e)
+		exit()
+	return trainedModel
+
+def initDataset():
 	try:
 		if(sys.argv[1]=='c'):  #add c to cmd command to "Create" dataset
+			msg(2)
+			X,y= pickleLoadDataset()
+		else:
 			msg(1)
 			X,y= create_training_data()
-		else:
-			msg(2)
-			X,y= pickleLoad()
 	except:
-		msg(2)
-		X,y= pickleLoad()
+		msg(1)
+		X,y= create_training_data()
 
 	return X,y
 
+def initModel():
 
-def train():
-	msg(3)
+	model = shapeModel()
 	try:
-		model = Sequential()
-		model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
-		model.add(Activation("relu"))
-		model.add(MaxPooling2D(pool_size=(2,2)))
+		if(sys.argv[2]=='m'):
+			msg(5)
+			trainedModel = pickleLoadModel(model)
+		else:
+			trainedModel = train(model)
+	except Exception as e:
+		print(e)
+		
+		trainedModel = train(model)
 
-		model.add(Conv2D(64, (3,3)))
-		model.add(Activation("relu"))
-		model.add(MaxPooling2D(pool_size=(2,2)))
+	return model
 
-		model.add(Flatten())
-		model.add(Dense(64))
+def shapeModel():
 
-		model.add(Dense(1))
-		model.add(Activation("sigmoid"))
+	model = Sequential()
+	model.add(Conv2D(256, (3, 3), input_shape=X.shape[1:]))
+	model.add(Activation("relu"))
+	model.add(MaxPooling2D(pool_size=(2,2)))
 
+	model.add(Conv2D(64, (3,3)))
+	model.add(Activation("relu"))
+	model.add(MaxPooling2D(pool_size=(2,2)))
+
+	model.add(Flatten())
+	model.add(Dense(64))
+
+	model.add(Dense(1))
+	model.add(Activation("sigmoid"))
+
+	return model
+
+def train(model):
+	msg(3)
+	try:		
 		model.compile(loss="binary_crossentropy",
 						optimizer="adam",
 						metrics=['accuracy'])
 
-		model.fit(X, y, batch_size=120,epochs=200, validation_split=0.1)
+		model.fit(X, y, batch_size=120,epochs=epochs, validation_split=0.1)
+
 	except Exception as e:
 		print(e)
+		exit()
 	if True:
 		model.save('walkorrunmodel.h5')
 	msg(4)
 
-X, y = initModel()
-train()
+	return model
+
+X, y = initDataset()
+model = initModel()
